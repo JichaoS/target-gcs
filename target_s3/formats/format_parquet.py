@@ -39,6 +39,9 @@ class FormatParquet(FormatBase):
                         "aws_endpoint_override", None
                     ),
                 )
+            if cloud_provider == "gcp":
+                # Uses https://google.aip.dev/auth/4110 to resolve
+                return fs.GcsFileSystem()
         except Exception as e:
             self.logger.error("Failed to create parquet file system.")
             self.logger.error(e)

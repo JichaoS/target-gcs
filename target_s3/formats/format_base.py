@@ -33,6 +33,8 @@ class FormatBase(metaclass=ABCMeta):
     """This is the object type base class"""
 
     def __init__(self, config: dict, context: dict, extension: str) -> None:
+        self.logger = context["logger"]
+
         # TODO: perhaps we should do some scrubbing here?
         self.config = config
 
@@ -50,7 +52,8 @@ class FormatBase(metaclass=ABCMeta):
 
         self.stream_name_path_override = config.get("stream_name_path_override", None)
 
-        if self.cloud_provider.get("cloud_provider_type", None) == "aws":
+        cloud_provider_type = self.cloud_provider.get("cloud_provider_type", None)
+        if cloud_provider_type == "aws":
             aws_config = self.cloud_provider.get("aws", None)
             assert aws_config, "FormatBase.__init__: Expecting aws in configuration"
 
@@ -66,9 +69,17 @@ class FormatBase(metaclass=ABCMeta):
                 "s3",
                 endpoint_url=aws_config.get("aws_endpoint_override", None),
             )
+        elif cloud_provider_type == "gcp":
+            gcp_config = self.cloud_provider.get("gcp", None)
+            self.logger.info(f"gcp_config: {gcp_config}")
+            assert gcp_config, "FormatBase.__init__: Expecting gcp in configuration"
+            self.bucket = gcp_config.get("gcs_bucket", None)  # required
+            self.logger.info("Extacting to bucket %s", self.bucket)
+
+        if cloud_provider_type and not self.bucket:
+            raise ValueError("FormatBase.__init__: Expecting bucket in configuration")
 
         self.prefix = config.get("prefix", None)
-        self.logger = context["logger"]
         self.fully_qualified_key = self.create_key()
         self.logger.info(f"key: {self.fully_qualified_key}")
 
@@ -120,7 +131,9 @@ class FormatBase(metaclass=ABCMeta):
             grain = DATE_GRAIN[self.config["append_date_to_filename_grain"].lower()]
             file_name += f"{self.create_file_structure(batch_start, grain)}"
 
-        return f"{folder_path}{file_name}"
+        dest = f"{folder_path}{file_name}"
+        self.logger.info(f"Writing to {dest}")
+        return dest
 
     def create_folder_structure(
         self, batch_start: datetime, grain: int, partition_name_enabled: bool

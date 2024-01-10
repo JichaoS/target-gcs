@@ -73,7 +73,7 @@ class Targets3(Target):
                     "cloud_provider_type",
                     th.StringType,
                     required=True,
-                    allowed_values=["aws"],  # TODO: configure this from class
+                    allowed_values=["aws", "gcp"],  # TODO: configure this from class
                 ),
                 th.Property(
                     "aws",
@@ -113,6 +113,17 @@ class Targets3(Target):
                         ),
                         th.Property(
                             "aws_endpoint_override",
+                            th.StringType,
+                            required=False,
+                        ),
+                    ),
+                    required=False,
+                ),
+                th.Property(
+                    "gcp",
+                    th.ObjectType(
+                        th.Property(
+                            "gcs_bucket",
                             th.StringType,
                             required=False,
                         ),
